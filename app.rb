@@ -1,31 +1,24 @@
 class App
   def call(env)
-    @env = env
-    [status, headers, body]
+    time_response(env)
+    headers = { 'Content-Type' => 'text/plain' }
+
+    [@status, headers, @body]
   end
 
   private
 
-  def status
-    200
-  end
+  def time_response(env)
+    req = Rack::Request.new(env)
+    params = req.params['format']
+    formatter = Formats.new(params)
 
-  def headers
-    { 'Content-Type' => 'text/plain' }
-  end
-
-  def body
-    req = Rack::Request.new(@env)
-    formats = req.params['format']
-
-    formats.gsub!(',', '-')
-    formats.sub!('year', '%Y')
-    formats.sub!('month', '%m')
-    formats.sub!('day', '%d')
-    formats.sub!('hour', '%H')
-    formats.sub!('minute', '%M')
-    formats.sub!('second', '%S')
-
-    [Time.now.strftime(formats)]
+    if formatter.valid?
+      @status = 200
+      @body = [formatter.time]
+    else
+      @status = 400
+      @body = [formatter.invalid_formats]
+    end
   end
 end
